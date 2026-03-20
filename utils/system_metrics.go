@@ -14,6 +14,9 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 )
 
+var lastEnergy float64
+var lastTime time.Time
+
 func init() {
 	if _, err := os.Stat("/host/proc"); err == nil {
 		os.Setenv("HOST_PROC", "/host/proc")
@@ -24,6 +27,34 @@ func init() {
 
 func Round(val float64) float64 {
 	return math.Round(val*100) / 100
+}
+
+func GetWatts() float64 {
+	data, err := os.ReadFile("/host/sys/class/powercap/intel-rapl:0/energy_uj")
+
+	if err != nil {
+		return 0
+	}
+
+	currentEnergy, _ := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+	currentTime := time.Now()
+
+	if lastTime.IsZero() {
+		lastEnergy = currentEnergy
+		lastTime = currentTime
+		return 0
+	}
+
+	diffJoules := (currentEnergy - lastEnergy) / 1_000_000
+	diffSeconds := currentTime.Sub(lastTime).Seconds()
+	lastEnergy = currentEnergy
+	lastTime = currentTime
+
+	if diffSeconds > 0 {
+		return Round(diffJoules / diffSeconds)
+	}
+
+	return 0
 }
 
 func GetCPU() map[string]interface{} {
@@ -37,12 +68,7 @@ func GetCPU() map[string]interface{} {
 		temp = temps[0].Temperature
 	}
 
-	var watts float64
-	data, err := os.ReadFile("/sys/class/powercap/intel-rapl:0/energy_uj")
-	if err == nil {
-		val, _ := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
-		watts = val / 1e6
-	}
+	watts := GetWatts()
 
 	return map[string]interface{}{
 		"percentage": Round(pct[0]),
