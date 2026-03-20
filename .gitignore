@@ -1,0 +1,14 @@
+bin/
+tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+.idea/
+.vscode/
+*.swp
+*.swo
+*.log
+*.env
