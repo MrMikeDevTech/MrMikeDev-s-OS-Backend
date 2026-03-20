@@ -13,7 +13,5 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Deploy with Docker Compose
-        run: docker compose up -d --build
-
-    
+      - name: Rebuild & Deploy with Docker Compose
+        run: docker compose up -d --build --remove-orphans
