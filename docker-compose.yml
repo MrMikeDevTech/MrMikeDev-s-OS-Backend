@@ -1,31 +1,33 @@
-version: '3.8'
-
 services:
   backend:
     build: .
     container_name: mrmikedevs_os_backend
-    ports:
-      - "15800:15800"
+    network_mode: "host"
     restart: always
+    privileged: true
+    volumes:
+      - /:/host:ro
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
+      - DB_HOST=localhost
+      - DB_PORT=15801
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=mrmikedevs
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
     depends_on:
       - db
 
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: mrmikedevs_db
+    network_mode: "host"
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: mrmikedevs
-    ports:
-      - "5432:5432"
+    command: ["postgres", "-p", "15801"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

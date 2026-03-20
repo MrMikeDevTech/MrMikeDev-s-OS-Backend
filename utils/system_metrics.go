@@ -14,6 +14,14 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 )
 
+func init() {
+	if _, err := os.Stat("/host/proc"); err == nil {
+		os.Setenv("HOST_PROC", "/host/proc")
+		os.Setenv("HOST_SYS", "/host/sys")
+		os.Setenv("HOST_ETC", "/host/etc")
+	}
+}
+
 func Round(val float64) float64 {
 	return math.Round(val*100) / 100
 }
@@ -55,7 +63,7 @@ func GetRAM() map[string]interface{} {
 }
 
 func GetDisk() map[string]interface{} {
-	d, _ := disk.Usage("/")
+	d, _ := disk.Usage("/host")
 	return map[string]interface{}{
 		"total_mb":   d.Total / 1024 / 1024,
 		"used_mb":    d.Used / 1024 / 1024,
