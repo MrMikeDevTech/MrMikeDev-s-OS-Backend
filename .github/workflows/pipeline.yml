@@ -13,5 +13,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Rebuild & Deploy with Docker Compose
-        run: docker compose up -d --build --remove-orphans
+        run: docker compose --env-file .env up -d --build --remove-orphans
