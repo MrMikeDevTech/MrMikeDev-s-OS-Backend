@@ -7,28 +7,45 @@ services:
     privileged: true
     volumes:
       - /:/host:ro
+      - /mnt/SSD:/mnt/SSD:ro
     environment:
-      - DB_HOST=localhost
-      - DB_PORT=15801
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=mrmikedevs
-      - HOST_PROC=/host/proc
-      - HOST_SYS=/host/sys
+      - DB_HOST=${DB_HOST:-127.0.0.1}
+      - DB_PORT=${DB_PORT:-15801}
+      - DB_USER=${DB_USER:-mrmikedev}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-mrmikedevsos}
+      - HOST_PROC=${HOST_PROC:-/host/proc}
+      - HOST_SYS=${HOST_SYS:-/host/sys}
+      - HOST_SSD=${HOST_SSD:-/mnt/SSD}
+      - API_KEY=${API_KEY:-}
+      - JWT_SECRET=${JWT_SECRET:-}
     depends_on:
       - db
 
   db:
     image: postgres:16-alpine
-    network_mode: "host"
+    container_name: mrmikedevs_os_db
     restart: always
+    ports:
+      - "${DB_PORT:-15801}:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mrmikedevs
-    command: ["postgres", "-p", "15801"]
+      POSTGRES_USER: ${DB_USER:-mrmikedev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-mrmikedevsos}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: mrmikedevs_os_pgadmin
+    restart: always
+    ports:
+      - "${PGADMIN_PORT:-15802}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    depends_on:
+      - db
 
 volumes:
   postgres_data:

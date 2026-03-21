@@ -9,12 +9,13 @@ import (
 )
 
 func SystemRoutes(app *fiber.App) {
+
 	app.Get("/ws/system", websocket.New(func(c *websocket.Conn) {
 		for {
 			metrics := fiber.Map{
 				"cpu":     utils.GetCPU(),
 				"ram":     utils.GetRAM(),
-				"storage": utils.GetDisk(),
+				"storage": utils.GetDisks(),
 				"network": utils.GetNetwork(time.Second),
 			}
 

@@ -88,14 +88,38 @@ func GetRAM() map[string]interface{} {
 	}
 }
 
-func GetDisk() map[string]interface{} {
-	d, _ := disk.Usage("/host")
-	return map[string]interface{}{
-		"total_mb":   d.Total / 1024 / 1024,
-		"used_mb":    d.Used / 1024 / 1024,
-		"free_mb":    d.Free / 1024 / 1024,
-		"percentage": Round(d.UsedPercent),
+func GetDisks() []map[string]interface{} {
+	results := make([]map[string]interface{}, 0)
+
+	devPotentialMounts := []string{"/"}
+	containerPotentialMounts := []string{"/host", "/mnt/SSD"}
+
+	var potentialMounts []string
+	if _, err := os.Stat("/host"); err == nil {
+		potentialMounts = containerPotentialMounts
+	} else {
+		potentialMounts = devPotentialMounts
 	}
+
+	for _, path := range potentialMounts {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			continue
+		}
+
+		d, err := disk.Usage(path)
+		if err != nil {
+			continue
+		}
+
+		results = append(results, map[string]interface{}{
+			"mount_point": path,
+			"total_gb":    d.Total / 1024 / 1024,
+			"used_gb":     d.Used / 1024 / 1024,
+			"percentage":  math.Round(d.UsedPercent*100) / 100,
+		})
+	}
+
+	return results
 }
 
 func GetNetwork(interval time.Duration) map[string]interface{} {
