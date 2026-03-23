@@ -8,15 +8,16 @@ import (
 func Router(app *fiber.App) {
 	app.Use(middleware.ApiKeyMiddleware)
 
-	app.Get("/", func(c *fiber.Ctx) error {
+	app.Get("/", middleware.JwtMiddleware, func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"endpoints": []string{
 				"GET /health",
 				"WS /ws/system",
-				"POST /login",
-				"POST /register",
-				// "POST /logout",
-				// "POST /refresh",
+				"POST /auth/login",
+				"POST /auth/register",
+				"GET /auth/validate",
+				"POST /auth/logout",
+				"POST /auth/refresh",
 			},
 		})
 	})

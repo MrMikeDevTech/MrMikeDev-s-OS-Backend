@@ -46,21 +46,27 @@ func ApiKeyMiddleware(c *fiber.Ctx) error {
 func JwtMiddleware(c *fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token ausente o inválido"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Token inválido",
+		})
 	}
 
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	secret := os.Getenv("JWT_SECRET")
+	tokenString := authHeader[7:]
+	secret := []byte(os.Getenv("JWT_SECRET"))
 
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fiber.ErrUnauthorized
 		}
-		return []byte(secret), nil
+		return secret, nil
 	})
 
 	if err != nil || !token.Valid {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token inválido"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Sesión inválida o expirada",
+		})
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
