@@ -1,10 +1,13 @@
 package routes
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/MrMikeDevTech/mrmikedevs-os/database"
+	"github.com/MrMikeDevTech/mrmikedevs-os/middleware"
 	"github.com/MrMikeDevTech/mrmikedevs-os/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -12,7 +15,9 @@ import (
 )
 
 func AuthRoutes(app *fiber.App) {
-	app.Post("/auth/login", func(c *fiber.Ctx) error {
+	auth := app.Group("/auth")
+
+	auth.Post("/login", func(c *fiber.Ctx) error {
 		type LoginInput struct {
 			Username string `json:"username"`
 			Email    string `json:"email"`
@@ -80,7 +85,7 @@ func AuthRoutes(app *fiber.App) {
 		})
 	})
 
-	app.Post("/auth/register", func(c *fiber.Ctx) error {
+	auth.Post("/register", func(c *fiber.Ctx) error {
 		type RegisterInput struct {
 			Username        string `json:"username"`
 			FullName        string `json:"full_name"`
@@ -141,7 +146,7 @@ func AuthRoutes(app *fiber.App) {
 		})
 	})
 
-	app.Get("/auth/validate", func(c *fiber.Ctx) error {
+	auth.Get("/validate", middleware.JwtMiddleware, func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "error", "message": "No hay token"})
@@ -167,7 +172,7 @@ func AuthRoutes(app *fiber.App) {
 		})
 	})
 
-	app.Post("/auth/refresh", func(c *fiber.Ctx) error {
+	auth.Post("/refresh", middleware.JwtMiddleware, func(c *fiber.Ctx) error {
 		type RefreshInput struct {
 			Token string `json:"token"`
 		}
@@ -189,7 +194,7 @@ func AuthRoutes(app *fiber.App) {
 		newClaims := jwt.MapClaims{
 			"user_id":  claims["user_id"],
 			"username": claims["username"],
-			"exp":      time.Now().Add(time.Hour * 72).Unix(),
+			"exp":      time.Now().Add(time.Hour * 1).Unix(),
 		}
 
 		newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
@@ -205,10 +210,58 @@ func AuthRoutes(app *fiber.App) {
 		})
 	})
 
-	app.Post("/auth/logout", func(c *fiber.Ctx) error {
+	auth.Post("/logout", middleware.JwtMiddleware, func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "success",
 			"message": "Saliendo del sistema... borra el token en el cliente",
+		})
+	})
+
+	auth.Get("/me", middleware.JwtMiddleware, func(c *fiber.Ctx) error {
+		authHeader := c.Get("Authorization")
+
+		tokenString := authHeader[7:]
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+
+		if err != nil || !token.Valid {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "error", "message": "Token inválido o expirado"})
+		}
+
+		claims := token.Claims.(jwt.MapClaims)
+
+		cacheKey := fmt.Sprintf("user:%v", claims["user_id"])
+
+		cachedUser, err := database.RedisClient.Get(database.Ctx, cacheKey).Result()
+		fmt.Println("Cached user:", cachedUser)
+		if err == nil {
+			var user models.User
+			if err := json.Unmarshal([]byte(cachedUser), &user); err == nil {
+				return c.JSON(fiber.Map{
+					"status": "success",
+					"user":   user,
+					"source": "cache",
+				})
+			}
+		}
+
+		var user models.User
+		if err := database.DB.Where("id = ?", claims["user_id"]).First(&user).Error; err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"status": "error", "message": "Usuario no encontrado"})
+		}
+
+		user.Password = ""
+
+		if userBytes, err := json.Marshal(user); err == nil {
+			database.RedisClient.Set(database.Ctx, cacheKey, userBytes, 15*time.Minute)
+		}
+
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"user":   user,
+			"source": "database",
 		})
 	})
 }

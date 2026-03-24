@@ -18,6 +18,7 @@ func Router(app *fiber.App) {
 				"GET /auth/validate",
 				"POST /auth/logout",
 				"POST /auth/refresh",
+				"GET /auth/me",
 			},
 		})
 	})
@@ -30,5 +31,7 @@ func Router(app *fiber.App) {
 
 	AuthRoutes(app)
 
-	SystemRoutes(app)
+	ServicesRoutes(app)
+
+	WebsocketTunnelRoutes(app)
 }

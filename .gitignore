@@ -12,3 +12,4 @@ vendor/
 *.swo
 *.log
 *.env
+test_local/

@@ -47,5 +47,29 @@ services:
     depends_on:
       - db
 
+  redis:
+    image: redis:7-alpine
+    container_name: mrmikedevs_os_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --bind 0.0.0.0
+    ports:
+      - "${REDIS_PORT:-15803}:6379"
+    volumes:
+      - redis_data:/data
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: mrmikedevs_os_redisinsight
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-15803}
+    ports:
+      - "${RI_PORT:-15804}:5540"
+    depends_on:
+      - redis
+
 volumes:
   postgres_data:
+  redis_data:

@@ -17,6 +17,7 @@ func main() {
 	}
 
 	database.ConnectDB()
+	database.ConnectRedis()
 
 	app := fiber.New()
 
