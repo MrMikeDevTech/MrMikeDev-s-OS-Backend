@@ -19,6 +19,12 @@ func Router(app *fiber.App) {
 				"POST /auth/logout",
 				"POST /auth/refresh",
 				"GET /auth/me",
+				"GET /services",
+				"POST /services/action/:action/:service",
+				"GET /services/logs/:service",
+				"GET /services/nginx/config",
+				"POST /services/nginx/test",
+				"POST /services/nginx/save",
 			},
 		})
 	})

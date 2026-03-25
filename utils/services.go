@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -21,7 +22,7 @@ func GetSystemServices() []ServiceStatus {
 		"ufw.service":           "UFW Firewall",
 		"docker.service":        "Docker Engine",
 		"docker.socket":         "Docker Socket",
-		"tailscale.service":     "Tailscale VPN",
+		"tailscaled.service":    "Tailscale VPN",
 	}
 
 	var results []ServiceStatus
@@ -46,4 +47,37 @@ func GetSystemServices() []ServiceStatus {
 		})
 	}
 	return results
+}
+
+func HandleServiceAction(serviceID string, action string) error {
+	validActions := map[string]bool{"start": true, "stop": true, "restart": true}
+	if !validActions[action] {
+		return fmt.Errorf("acción no permitida: %s", action)
+	}
+
+	if runtime.GOOS == "windows" {
+		fmt.Printf("Mock: %s %s\n", action, serviceID)
+		return nil
+	}
+
+	cmd := exec.Command("sudo", "systemctl", action, serviceID)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error: %s - %v", string(out), err)
+	}
+
+	return nil
+}
+
+func GetServiceLogs(serviceID string) (string, error) {
+	if runtime.GOOS == "windows" {
+		return "Logs no disponibles en Windows", nil
+	}
+	cmd := exec.Command("sudo", "journalctl", "-u", serviceID, "-n", "50", "--no-pager")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error al obtener logs: %v", err)
+	}
+
+	return string(out), nil
 }

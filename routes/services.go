@@ -9,55 +9,51 @@ import (
 func ServicesRoutes(app *fiber.App) {
 	services := app.Group("/services", middleware.JwtMiddleware)
 
-	nginx := services.Group("/nginx", middleware.JwtMiddleware)
-
-	nginx.Get("/config", func(c *fiber.Ctx) error {
-		content, err := utils.ReadNginxConfig()
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"status": "error", "message": "No se pudo leer el archivo"})
-		}
-		return c.JSON(fiber.Map{"status": "success", "content": content})
+	services.Get("/", func(c *fiber.Ctx) error {
+		list := utils.GetSystemServices()
+		return c.JSON(fiber.Map{
+			"status": "success",
+			"data":   list,
+		})
 	})
 
-	nginx.Post("/test", func(c *fiber.Ctx) error {
-		type Request struct {
-			Content string `json:"content"`
-		}
-		var req Request
-		if err := c.BodyParser(&req); err != nil {
-			return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Cuerpo inválido"})
-		}
+	services.Post("/action/:action/:service", func(c *fiber.Ctx) error {
+		action := c.Params("action")
+		serviceID := c.Params("service")
 
-		output, err := utils.TestNginxConfig(req.Content)
+		err := utils.HandleServiceAction(serviceID, action)
 		if err != nil {
-			return c.Status(422).JSON(fiber.Map{
+			return c.Status(500).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Sintaxis de Nginx inválida",
-				"output":  output,
+				"message": "Error al ejecutar la acción",
+				"error":   err.Error(),
 			})
 		}
 
-		return c.JSON(fiber.Map{"status": "success", "message": "Configuración válida", "output": output})
+		return c.JSON(fiber.Map{
+			"status":  "success",
+			"message": "Servicio " + action + "ado correctamente",
+		})
 	})
 
-	nginx.Post("/save", func(c *fiber.Ctx) error {
-		type Request struct {
-			Content string `json:"content"`
-		}
-		var req Request
-		if err := c.BodyParser(&req); err != nil {
-			return c.Status(400).JSON(fiber.Map{"status": "error", "message": "Cuerpo inválido"})
-		}
+	services.Get("/logs/:service", func(c *fiber.Ctx) error {
+		serviceID := c.Params("service")
 
-		_, err := utils.TestNginxConfig(req.Content)
+		logs, err := utils.GetServiceLogs(serviceID)
 		if err != nil {
-			return c.Status(422).JSON(fiber.Map{"status": "error", "message": "No se puede guardar: Sintaxis inválida"})
+			return c.Status(500).JSON(fiber.Map{
+				"status":  "error",
+				"message": "No se pudieron obtener los logs",
+				"error":   err.Error(),
+			})
 		}
 
-		if err := utils.SaveNginxConfig(req.Content); err != nil {
-			return c.Status(500).JSON(fiber.Map{"status": "error", "message": "Error al guardar el archivo"})
-		}
-
-		return c.JSON(fiber.Map{"status": "success", "message": "Configuración guardada y aplicada"})
+		return c.JSON(fiber.Map{
+			"status":  "success",
+			"service": serviceID,
+			"logs":    logs,
+		})
 	})
+
+	NginxRoutes(services)
 }
