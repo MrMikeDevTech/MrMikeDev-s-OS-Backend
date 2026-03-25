@@ -23,6 +23,19 @@ func ServicesRoutes(app *fiber.App) {
 
 		err := utils.HandleServiceAction(serviceID, action)
 		if err != nil {
+			if err.Error() == "ALREADY_ACTIVE" {
+				return c.Status(400).JSON(fiber.Map{
+					"status":  "info",
+					"message": "El servicio " + serviceID + " ya se encuentra encendido",
+				})
+			}
+			if err.Error() == "ALREADY_INACTIVE" {
+				return c.Status(400).JSON(fiber.Map{
+					"status":  "info",
+					"message": "El servicio " + serviceID + " ya se encuentra apagado",
+				})
+			}
+
 			return c.Status(500).JSON(fiber.Map{
 				"status":  "error",
 				"message": "Error al ejecutar la acción",
@@ -30,19 +43,15 @@ func ServicesRoutes(app *fiber.App) {
 			})
 		}
 
-		msg := ""
-		switch action {
-		case "stop":
-			msg = "Servicio detenido correctamente"
-		case "start":
-			msg = "Servicio iniciado correctamente"
-		case "restart":
-			msg = "Servicio reiniciado correctamente"
+		messages := map[string]string{
+			"stop":    "Servicio detenido correctamente",
+			"start":   "Servicio iniciado correctamente",
+			"restart": "Servicio reiniciado correctamente",
 		}
 
 		return c.JSON(fiber.Map{
 			"status":  "success",
-			"message": msg,
+			"message": messages[action],
 		})
 	})
 

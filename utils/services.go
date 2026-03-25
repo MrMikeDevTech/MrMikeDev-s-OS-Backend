@@ -57,8 +57,20 @@ func HandleServiceAction(serviceID string, action string) error {
 	}
 
 	if runtime.GOOS == "windows" {
-		fmt.Printf("Mock: %s %s\n", action, serviceID)
 		return nil
+	}
+
+	if action == "start" || action == "stop" {
+		cmdCheck := exec.Command("systemctl", "is-active", serviceID)
+		outCheck, _ := cmdCheck.CombinedOutput()
+		status := strings.TrimSpace(string(outCheck))
+
+		if action == "start" && status == "active" {
+			return fmt.Errorf("ALREADY_ACTIVE")
+		}
+		if action == "stop" && (status == "inactive" || status == "failed") {
+			return fmt.Errorf("ALREADY_INACTIVE")
+		}
 	}
 
 	cmd := exec.Command("sudo", "systemctl", action, serviceID)
