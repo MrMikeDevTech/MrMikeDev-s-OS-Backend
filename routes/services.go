@@ -30,9 +30,19 @@ func ServicesRoutes(app *fiber.App) {
 			})
 		}
 
+		msg := ""
+		switch action {
+		case "stop":
+			msg = "Servicio detenido correctamente"
+		case "start":
+			msg = "Servicio iniciado correctamente"
+		case "restart":
+			msg = "Servicio reiniciado correctamente"
+		}
+
 		return c.JSON(fiber.Map{
 			"status":  "success",
-			"message": "Servicio " + action + "ado correctamente",
+			"message": msg,
 		})
 	})
 
