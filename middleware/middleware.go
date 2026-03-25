@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"os"
 	"strings"
 
+	"github.com/MrMikeDevTech/mrmikedevs-os/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -26,7 +26,7 @@ func CORSMiddleware(c *fiber.Ctx) error {
 }
 
 func ApiKeyMiddleware(c *fiber.Ctx) error {
-	apiKey := os.Getenv("API_KEY")
+	apiKey := utils.GetEnv("API_KEY")
 	if apiKey == "" {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "API_KEY no configurado en el entorno"})
 	}
@@ -53,7 +53,7 @@ func JwtMiddleware(c *fiber.Ctx) error {
 	}
 
 	tokenString := authHeader[7:]
-	secret := []byte(os.Getenv("JWT_SECRET"))
+	secret := []byte(utils.GetEnv("JWT_SECRET"))
 
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

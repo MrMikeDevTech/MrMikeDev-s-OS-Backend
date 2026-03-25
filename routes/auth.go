@@ -3,12 +3,12 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/MrMikeDevTech/mrmikedevs-os/database"
 	"github.com/MrMikeDevTech/mrmikedevs-os/middleware"
 	"github.com/MrMikeDevTech/mrmikedevs-os/models"
+	"github.com/MrMikeDevTech/mrmikedevs-os/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -68,7 +68,7 @@ func AuthRoutes(app *fiber.App) {
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		t, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+		t, err := token.SignedString([]byte(utils.GetEnv("JWT_SECRET")))
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -155,7 +155,7 @@ func AuthRoutes(app *fiber.App) {
 		tokenString := authHeader[7:]
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(utils.GetEnv("JWT_SECRET")), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -182,7 +182,7 @@ func AuthRoutes(app *fiber.App) {
 		}
 
 		token, err := jwt.Parse(input.Token, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(utils.GetEnv("JWT_SECRET")), nil
 		})
 
 		if err != nil && !token.Valid {
@@ -198,7 +198,7 @@ func AuthRoutes(app *fiber.App) {
 		}
 
 		newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
-		t, err := newToken.SignedString([]byte(os.Getenv("JWT_SECRET")))
+		t, err := newToken.SignedString([]byte(utils.GetEnv("JWT_SECRET")))
 
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "Error al renovar"})
@@ -223,7 +223,7 @@ func AuthRoutes(app *fiber.App) {
 		tokenString := authHeader[7:]
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(utils.GetEnv("JWT_SECRET")), nil
 		})
 
 		if err != nil || !token.Valid {

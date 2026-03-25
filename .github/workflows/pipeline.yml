@@ -17,5 +17,22 @@ jobs:
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
 
-      - name: Rebuild & Deploy with Docker Compose
-        run: docker compose --env-file .env up -d --build --remove-orphans
+      - name: Reload Infrastructure
+        run: |
+          docker compose --env-file .env up -d --remove-orphans
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build Backend Binary
+        run: |
+          go build -o bin/mrmikedevs-backend .
+      
+      - name: Restart Systemd Service
+        run: |
+          sudo systemctl restart mrmikedevs-os.service

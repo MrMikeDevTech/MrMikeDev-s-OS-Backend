@@ -17,21 +17,12 @@ import (
 var lastEnergy float64
 var lastTime time.Time
 
-func init() {
-	if _, err := os.Stat("/host/proc"); err == nil {
-		os.Setenv("HOST_PROC", "/host/proc")
-		os.Setenv("HOST_SYS", "/host/sys")
-		os.Setenv("HOST_ETC", "/host/etc")
-	}
-}
-
 func Round(val float64) float64 {
 	return math.Round(val*100) / 100
 }
 
 func GetWatts() float64 {
-	data, err := os.ReadFile("/host/sys/class/powercap/intel-rapl:0/energy_uj")
-
+	data, err := os.ReadFile("/sys/class/powercap/intel-rapl:0/energy_uj")
 	if err != nil {
 		return 0
 	}
@@ -47,6 +38,7 @@ func GetWatts() float64 {
 
 	diffJoules := (currentEnergy - lastEnergy) / 1_000_000
 	diffSeconds := currentTime.Sub(lastTime).Seconds()
+
 	lastEnergy = currentEnergy
 	lastTime = currentTime
 
@@ -64,18 +56,23 @@ func GetCPU() map[string]interface{} {
 
 	temps, _ := host.SensorsTemperatures()
 	var temp float64
-	if len(temps) > 0 {
-		temp = temps[0].Temperature
+	for _, t := range temps {
+		if strings.Contains(strings.ToLower(t.SensorKey), "package") || strings.Contains(strings.ToLower(t.SensorKey), "core") {
+			temp = t.Temperature
+			break
+		}
 	}
 
-	watts := GetWatts()
+	if temp == 0 && len(temps) > 0 {
+		temp = temps[0].Temperature
+	}
 
 	return map[string]interface{}{
 		"percentage": Round(pct[0]),
 		"cores":      physical,
 		"threads":    logical,
 		"temp_c":     Round(temp),
-		"watts":      Round(watts),
+		"watts":      Round(GetWatts()),
 	}
 }
 
@@ -91,15 +88,7 @@ func GetRAM() map[string]interface{} {
 func GetDisks() []map[string]interface{} {
 	results := make([]map[string]interface{}, 0)
 
-	devPotentialMounts := []string{"/"}
-	containerPotentialMounts := []string{"/host", "/mnt/SSD"}
-
-	var potentialMounts []string
-	if _, err := os.Stat("/host"); err == nil {
-		potentialMounts = containerPotentialMounts
-	} else {
-		potentialMounts = devPotentialMounts
-	}
+	potentialMounts := []string{"/", "/mnt/SSD"}
 
 	for _, path := range potentialMounts {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -113,9 +102,9 @@ func GetDisks() []map[string]interface{} {
 
 		results = append(results, map[string]interface{}{
 			"mount_point": path,
-			"total_gb":    d.Total / 1024 / 1024,
-			"used_gb":     d.Used / 1024 / 1024,
-			"percentage":  math.Round(d.UsedPercent*100) / 100,
+			"total_gb":    Round(float64(d.Total) / 1024 / 1024 / 1024),
+			"used_gb":     Round(float64(d.Used) / 1024 / 1024 / 1024),
+			"percentage":  Round(d.UsedPercent),
 		})
 	}
 
@@ -126,6 +115,10 @@ func GetNetwork(interval time.Duration) map[string]interface{} {
 	n1, _ := net.IOCounters(false)
 	time.Sleep(interval)
 	n2, _ := net.IOCounters(false)
+
+	if len(n1) == 0 || len(n2) == 0 {
+		return map[string]interface{}{"download_mbps": 0, "upload_mbps": 0}
+	}
 
 	down := float64(n2[0].BytesRecv-n1[0].BytesRecv) / 1024 / 1024
 	up := float64(n2[0].BytesSent-n1[0].BytesSent) / 1024 / 1024

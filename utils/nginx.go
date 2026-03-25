@@ -33,10 +33,10 @@ func TestNginxConfig(content string) (string, error) {
 	}
 
 	if runtime.GOOS == "windows" {
-		return "", nil
+		return "Syntax OK", nil
 	}
 
-	cmd := exec.Command("nginx", "-t", "-c", tempFile)
+	cmd := exec.Command("sudo", "nginx", "-t", "-c", tempFile)
 	out, err := cmd.CombinedOutput()
 
 	return string(out), err
@@ -51,7 +51,7 @@ func SaveNginxConfig(content string) error {
 	}
 
 	if runtime.GOOS != "windows" {
-		exec.Command("systemctl", "reload", "nginx").Run()
+		exec.Command("sudo", "systemctl", "reload", "nginx").Run()
 	}
 	return nil
 }

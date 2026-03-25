@@ -1,31 +1,10 @@
 services:
-  backend:
-    build: .
-    container_name: mrmikedevs_os_backend
-    network_mode: "host"
-    restart: always
-    privileged: true
-    volumes:
-      - /:/host:ro
-      - /mnt/SSD:/mnt/SSD:ro
-    environment:
-      - DB_HOST=${DB_HOST:-127.0.0.1}
-      - DB_PORT=${DB_PORT:-15801}
-      - DB_USER=${DB_USER:-mrmikedev}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - DB_NAME=${DB_NAME:-mrmikedevsos}
-      - HOST_PROC=${HOST_PROC:-/host/proc}
-      - HOST_SYS=${HOST_SYS:-/host/sys}
-      - HOST_SSD=${HOST_SSD:-/mnt/SSD}
-      - API_KEY=${API_KEY:-}
-      - JWT_SECRET=${JWT_SECRET:-}
-    depends_on:
-      - db
-
   db:
     image: postgres:16-alpine
     container_name: mrmikedevs_os_db
     restart: always
+    networks:
+      - mrmikedevs_network
     ports:
       - "${DB_PORT:-15801}:5432"
     environment:
@@ -39,11 +18,14 @@ services:
     image: dpage/pgadmin4
     container_name: mrmikedevs_os_pgadmin
     restart: always
+    networks:
+      - mrmikedevs_network
     ports:
       - "${PGADMIN_PORT:-15802}:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
     depends_on:
       - db
 
@@ -51,6 +33,8 @@ services:
     image: redis:7-alpine
     container_name: mrmikedevs_os_redis
     restart: unless-stopped
+    networks:
+      - mrmikedevs_network
     command: redis-server --requirepass ${REDIS_PASSWORD} --bind 0.0.0.0
     ports:
       - "${REDIS_PORT:-15803}:6379"
@@ -61,14 +45,20 @@ services:
     image: redis/redisinsight:latest
     container_name: mrmikedevs_os_redisinsight
     restart: unless-stopped
+    networks:
+      - mrmikedevs_network
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_HOST=${REDIS_HOST:-redis}
-      - REDIS_PORT=${REDIS_PORT:-15803}
+      - REDIS_HOST=${INTERNAL_REDIS_HOST}
+      - REDIS_PORT=${INTERNAL_REDIS_PORT}
     ports:
       - "${RI_PORT:-15804}:5540"
     depends_on:
       - redis
+
+networks:
+  mrmikedevs_network:
+    driver: bridge
 
 volumes:
   postgres_data:

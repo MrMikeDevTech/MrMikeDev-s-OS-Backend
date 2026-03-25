@@ -14,14 +14,14 @@ type ServiceStatus struct {
 
 func GetSystemServices() []ServiceStatus {
 	monitoredServices := map[string]string{
-		"nginx.service":       "Nginx Proxy",
-		"cloudflared.service": "Cloudflare Tunnel",
-		"ssh.service":         "SSH Server",
-		"ufw.service":         "UFW Firewall",
-		"fail2ban.service":    "Fail2Ban",
-		"docker.service":      "Docker Engine",
-		"docker.socket":       "Docker Socket",
-		"tailscale.service":   "Tailscale VPN",
+		"mrmikedevs-os.service": "OS Backend",
+		"nginx.service":         "Nginx Proxy",
+		"cloudflared.service":   "Cloudflare Tunnel",
+		"ssh.service":           "SSH Server",
+		"ufw.service":           "UFW Firewall",
+		"docker.service":        "Docker Engine",
+		"docker.socket":         "Docker Socket",
+		"tailscale.service":     "Tailscale VPN",
 	}
 
 	var results []ServiceStatus

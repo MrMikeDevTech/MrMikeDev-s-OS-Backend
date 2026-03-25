@@ -3,10 +3,10 @@ package database
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/MrMikeDevTech/mrmikedevs-os/models"
+	"github.com/MrMikeDevTech/mrmikedevs-os/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -15,11 +15,11 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() {
-	host := getEnv("DB_HOST", "127.0.0.1")
-	port := getEnv("DB_PORT", "15801")
-	user := getEnv("DB_USER", "mrmikedev")
-	pass := getEnv("DB_PASSWORD", "postgres")
-	name := getEnv("DB_NAME", "mrmikedevsos")
+	host := utils.GetEnv("DB_HOST", "127.0.0.1")
+	port := utils.GetEnv("DB_PORT", "15801")
+	user := utils.GetEnv("DB_USER", "mrmikedev")
+	pass := utils.GetEnv("DB_PASSWORD", "postgres")
+	name := utils.GetEnv("DB_NAME", "mrmikedevsos")
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
 		host, user, pass, name, port)
@@ -49,11 +49,4 @@ func ConnectDB() {
 		log.Fatal("❌ Error en AutoMigrate:", err)
 	}
 	log.Println("🚀 Migración completada")
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

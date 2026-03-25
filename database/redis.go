@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/MrMikeDevTech/mrmikedevs-os/utils"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -12,9 +13,9 @@ var RedisClient *redis.Client
 var Ctx = context.Background()
 
 func ConnectRedis() {
-	host := getEnv("REDIS_HOST", "127.0.0.1")
-	port := getEnv("REDIS_PORT", "15803")
-	password := getEnv("REDIS_PASSWORD", "")
+	host := utils.GetEnv("REDIS_HOST", "redis")
+	port := utils.GetEnv("REDIS_PORT", "6379")
+	password := utils.GetEnv("REDIS_PASSWORD")
 
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", host, port),
