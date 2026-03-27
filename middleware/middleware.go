@@ -44,15 +44,22 @@ func ApiKeyMiddleware(c *fiber.Ctx) error {
 }
 
 func JwtMiddleware(c *fiber.Ctx) error {
+	var tokenString string
+
 	authHeader := c.Get("Authorization")
-	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		tokenString = authHeader[7:]
+	} else if c.Query("token") != "" {
+		tokenString = c.Query("token")
+	}
+
+	if tokenString == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Token inválido",
 		})
 	}
 
-	tokenString := authHeader[7:]
 	secret := []byte(utils.GetEnv("JWT_SECRET"))
 
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
