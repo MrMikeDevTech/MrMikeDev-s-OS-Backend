@@ -5,6 +5,7 @@ import (
 
 	"github.com/MrMikeDevTech/mrmikedevs-os/utils"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/websocket/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -18,11 +19,13 @@ func WSUpgrade(c *fiber.Ctx) error {
 	return fiber.ErrUpgradeRequired
 }
 
-func CORSMiddleware(c *fiber.Ctx) error {
-	c.Set("Access-Control-Allow-Origin", "*")
-	c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	c.Set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key")
-	return c.Next()
+func CORSMiddleware() fiber.Handler {
+	return cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:15805, http://mrmikedev-vps:15805, http://mrmikedev-vps",
+		AllowHeaders:     "Origin, Content-Type, Accept, x-api-key, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
+		AllowCredentials: true,
+	})
 }
 
 func ApiKeyMiddleware(c *fiber.Ctx) error {

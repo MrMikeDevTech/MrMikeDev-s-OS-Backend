@@ -25,6 +25,7 @@ func Router(app *fiber.App) {
 				"GET /services/nginx/config",
 				"POST /services/nginx/test",
 				"POST /services/nginx/save",
+				"GET /weather",
 			},
 		})
 	})
@@ -40,4 +41,6 @@ func Router(app *fiber.App) {
 	ServicesRoutes(app)
 
 	WebsocketTunnelRoutes(app)
+
+	WeatherRoutes(app)
 }

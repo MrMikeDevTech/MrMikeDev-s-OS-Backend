@@ -21,7 +21,8 @@ func main() {
 
 	app := fiber.New()
 
-	app.Use(middleware.CORSMiddleware)
+	app.Use(middleware.CORSMiddleware())
+
 	app.Use("/ws", middleware.WSUpgrade)
 
 	routes.Router(app)

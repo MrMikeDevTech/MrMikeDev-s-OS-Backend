@@ -50,6 +50,7 @@ func GetWatts() float64 {
 }
 
 func GetCPU() map[string]interface{} {
+	model, _ := cpu.Info()
 	pct, _ := cpu.Percent(0, false)
 	logical, _ := cpu.Counts(true)
 	physical, _ := cpu.Counts(false)
@@ -68,6 +69,7 @@ func GetCPU() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
+		"model":      model[0].ModelName,
 		"percentage": Round(pct[0]),
 		"cores":      physical,
 		"threads":    logical,

@@ -5,7 +5,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 )
 
 type ServiceStatus struct {
@@ -16,14 +15,14 @@ type ServiceStatus struct {
 
 func GetSystemServices() []ServiceStatus {
 	monitoredServices := map[string]string{
-		"mrmikedevs-os.service": "OS Backend",
-		"nginx.service":         "Nginx Proxy",
-		"cloudflared.service":   "Cloudflare Tunnel",
-		"ssh.service":           "SSH Server",
-		"ufw.service":           "UFW Firewall",
-		"docker.service":        "Docker Engine",
-		"docker.socket":         "Docker Socket",
-		"tailscaled.service":    "Tailscale VPN",
+		"mrmikedevs-os-backend.service": "OS Backend",
+		"nginx.service":                 "Nginx Proxy",
+		"cloudflared.service":           "Cloudflare Tunnel",
+		"ssh.service":                   "SSH Server",
+		"ufw.service":                   "UFW Firewall",
+		"docker.service":                "Docker Engine",
+		"docker.socket":                 "Docker Socket",
+		"tailscaled.service":            "Tailscale VPN",
 	}
 
 	var results []ServiceStatus
@@ -57,7 +56,11 @@ func HandleServiceAction(serviceID string, action string) error {
 	}
 
 	if runtime.GOOS == "windows" {
-		return nil
+		return fmt.Errorf("No se puede hacer acciones sobre los servicios desde Windows.")
+	}
+
+	if serviceID == "mrmikedevs-os-backend.service" {
+		return fmt.Errorf("No se puede hacer acciones sobre el backend desde aquí.")
 	}
 
 	if action == "start" || action == "stop" {
@@ -82,14 +85,9 @@ func HandleServiceAction(serviceID string, action string) error {
 	return nil
 }
 
-type LogEntry struct {
-	Timestamp *time.Time `json:"timestamp"`
-	Message   string     `json:"message"`
-}
-
-func GetServiceLogs(serviceID string) ([]LogEntry, error) {
+func GetServiceLogs(serviceID string) ([]string, error) {
 	if runtime.GOOS == "windows" {
-		return []LogEntry{{Message: "Logs no disponibles en Windows"}}, nil
+		return []string{"Logs no disponibles en Windows"}, nil
 	}
 
 	cmd := exec.Command("sudo", "journalctl", "-u", serviceID, "-n", "250", "--no-pager", "--output=short-iso")
@@ -99,38 +97,15 @@ func GetServiceLogs(serviceID string) ([]LogEntry, error) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	var logEntries []LogEntry
+	var logEntries []string
 
 	for _, line := range lines {
-		line = strings.TrimRight(line, " \r")
-		if line == "" {
+		cleanLine := strings.TrimSpace(line)
+		if cleanLine == "" {
 			continue
 		}
 
-		parts := strings.SplitN(line, " ", 3)
-
-		var entry LogEntry
-
-		t, err := time.Parse(time.RFC3339, parts[0])
-		if err == nil {
-			entry.Timestamp = &t
-
-			if len(parts) >= 3 {
-				msgPart := parts[2]
-				if idx := strings.Index(msgPart, ": "); idx != -1 {
-					entry.Message = msgPart[idx+2:]
-				} else {
-					entry.Message = msgPart
-				}
-			} else {
-				entry.Message = ""
-			}
-		} else {
-			entry.Timestamp = nil
-			entry.Message = line
-		}
-
-		logEntries = append(logEntries, entry)
+		logEntries = append(logEntries, cleanLine)
 	}
 
 	return logEntries, nil

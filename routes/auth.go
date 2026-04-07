@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/MrMikeDevTech/mrmikedevs-os/database"
@@ -19,7 +20,6 @@ func AuthRoutes(app *fiber.App) {
 
 	auth.Post("/login", func(c *fiber.Ctx) error {
 		type LoginInput struct {
-			Username string `json:"username"`
 			Email    string `json:"email"`
 			Password string `json:"password"`
 		}
@@ -32,22 +32,15 @@ func AuthRoutes(app *fiber.App) {
 			})
 		}
 
-		var identity string
-		if input.Email != "" {
-			identity = input.Email
-		} else {
-			identity = input.Username
-		}
-
-		if identity == "" {
+		if input.Email == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"status":  "error",
-				"message": "Debes proporcionar un usuario o un correo electrónico",
+				"message": "Debes proporcionar un correo electrónico",
 			})
 		}
 
 		var user models.User
-		if err := database.DB.Where("username = ? OR email = ?", identity, identity).First(&user).Error; err != nil {
+		if err := database.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"status":  "error",
 				"message": "Credenciales inválidas",
@@ -103,10 +96,25 @@ func AuthRoutes(app *fiber.App) {
 			})
 		}
 
-		if len(input.Password) < 8 {
+		if len(input.Username) < 3 || len(input.Username) > 15 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"status":  "error",
-				"message": "La contraseña debe tener al menos 8 caracteres",
+				"message": "El nombre de usuario debe tener entre 3 y 15 caracteres",
+			})
+		}
+
+		emailRegex := regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+		if !emailRegex.MatchString(input.Email) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "error",
+				"message": "El correo electrónico no es válido",
+			})
+		}
+
+		if len(input.Password) < 8 || len(input.Password) > 20 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"status":  "error",
+				"message": "La contraseña debe tener entre 8 y 20 caracteres",
 			})
 		}
 
@@ -235,7 +243,6 @@ func AuthRoutes(app *fiber.App) {
 		cacheKey := fmt.Sprintf("user:%v", claims["user_id"])
 
 		cachedUser, err := database.RedisClient.Get(database.Ctx, cacheKey).Result()
-		fmt.Println("Cached user:", cachedUser)
 		if err == nil {
 			var user models.User
 			if err := json.Unmarshal([]byte(cachedUser), &user); err == nil {

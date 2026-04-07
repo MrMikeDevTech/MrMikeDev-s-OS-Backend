@@ -16,7 +16,7 @@ func WebsocketTunnelRoutes(app *fiber.App) {
 		ticker := time.NewTicker(2 * time.Second)
 		defer ticker.Stop()
 
-		for range ticker.C {
+		for {
 			metrics := fiber.Map{
 				"cpu":     utils.GetCPU(),
 				"ram":     utils.GetRAM(),
@@ -37,6 +37,8 @@ func WebsocketTunnelRoutes(app *fiber.App) {
 			if err := c.WriteJSON(payload); err != nil {
 				return
 			}
+
+			<-ticker.C
 		}
 	}))
 }
