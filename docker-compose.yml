@@ -26,6 +26,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     depends_on:
       - db
 
@@ -53,6 +55,8 @@ services:
       - REDIS_PORT=${INTERNAL_REDIS_PORT}
     ports:
       - "${RI_PORT:-15804}:5540"
+    volumes:
+      - redisinsight_data:/var/lib/redisinsight
     depends_on:
       - redis
 
@@ -62,4 +66,6 @@ networks:
 
 volumes:
   postgres_data:
+  pgadmin_data:
   redis_data:
+  redisinsight_data:
