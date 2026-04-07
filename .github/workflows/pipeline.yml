@@ -37,4 +37,4 @@ jobs:
       
       - name: Restart Systemd Service
         run: |
-          sudo systemctl restart mrmikedevs-os.service
+          sudo systemctl restart mrmikedevs-os-backend.service
