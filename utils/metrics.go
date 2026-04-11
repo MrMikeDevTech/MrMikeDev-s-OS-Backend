@@ -3,8 +3,10 @@ package utils
 import (
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -14,20 +16,56 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 )
 
-var lastEnergy float64
-var lastTime time.Time
+var (
+	lastEnergy float64
+	lastTime   time.Time
+	lastWatts  float64
+	mu         sync.Mutex
+)
 
 func Round(val float64) float64 {
 	return math.Round(val*100) / 100
 }
 
-func GetWatts() float64 {
-	data, err := os.ReadFile("/sys/class/powercap/intel-rapl:0/energy_uj")
-	if err != nil {
-		return 0
+func getEnergyUJ() (float64, error) {
+	paths := []string{
+		"/sys/class/powercap/intel-rapl:0/energy_uj",
+		"/sys/devices/virtual/powercap/intel-rapl/intel-rapl:0/energy_uj",
 	}
 
-	currentEnergy, _ := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		val, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+		if err == nil && val > 0 {
+			return val, nil
+		}
+	}
+
+	matches, _ := filepath.Glob("/sys/class/powercap/intel-rapl*/energy_uj")
+	for _, p := range matches {
+		data, err := os.ReadFile(p)
+		if err == nil {
+			val, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64)
+			if err == nil && val > 0 {
+				return val, nil
+			}
+		}
+	}
+	return 0, os.ErrNotExist
+}
+
+func GetWatts() float64 {
+	mu.Lock()
+	defer mu.Unlock()
+
+	currentEnergy, err := getEnergyUJ()
+	if err != nil {
+		return lastWatts
+	}
+
 	currentTime := time.Now()
 
 	if lastTime.IsZero() {
@@ -36,17 +74,30 @@ func GetWatts() float64 {
 		return 0
 	}
 
-	diffJoules := (currentEnergy - lastEnergy) / 1_000_000
+	diffJoules := (currentEnergy - lastEnergy) / 1_000_000.0
 	diffSeconds := currentTime.Sub(lastTime).Seconds()
+
+	if diffSeconds < 0.1 {
+		return lastWatts
+	}
+
+	if diffJoules < 0 {
+		lastEnergy = currentEnergy
+		lastTime = currentTime
+		return lastWatts
+	}
 
 	lastEnergy = currentEnergy
 	lastTime = currentTime
 
-	if diffSeconds > 0 {
-		return Round(diffJoules / diffSeconds)
+	wattage := diffJoules / diffSeconds
+
+	if wattage > 150.0 || wattage < 0 {
+		return lastWatts
 	}
 
-	return 0
+	lastWatts = Round(wattage)
+	return lastWatts
 }
 
 func GetCPU() map[string]interface{} {
@@ -58,7 +109,8 @@ func GetCPU() map[string]interface{} {
 	temps, _ := host.SensorsTemperatures()
 	var temp float64
 	for _, t := range temps {
-		if strings.Contains(strings.ToLower(t.SensorKey), "package") || strings.Contains(strings.ToLower(t.SensorKey), "core") {
+		sensorName := strings.ToLower(t.SensorKey)
+		if strings.Contains(sensorName, "package") || strings.Contains(sensorName, "core 0") {
 			temp = t.Temperature
 			break
 		}
@@ -74,7 +126,7 @@ func GetCPU() map[string]interface{} {
 		"cores":      physical,
 		"threads":    logical,
 		"temp_c":     Round(temp),
-		"watts":      Round(GetWatts()),
+		"watts":      GetWatts(),
 	}
 }
 
