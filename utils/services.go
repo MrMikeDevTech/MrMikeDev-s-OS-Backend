@@ -59,8 +59,18 @@ func HandleServiceAction(serviceID string, action string) error {
 		return fmt.Errorf("No se puede hacer acciones sobre los servicios desde Windows.")
 	}
 
-	if serviceID == "mrmikedevs-os-backend.service" {
-		return fmt.Errorf("No se puede hacer acciones sobre el backend desde aquí.")
+	noActionsServices := []string{
+		"mrmikedevs-os-backend.service",
+		"ssh.service",
+		"docker.service",
+		"docker.socket",
+		"tailscaled.service",
+	}
+
+	for _, service := range noActionsServices {
+		if serviceID == service {
+			return fmt.Errorf("No se puede hacer acciones sobre el servicio %s desde aquí.", service)
+		}
 	}
 
 	if action == "start" || action == "stop" {
